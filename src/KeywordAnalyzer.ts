@@ -44,7 +44,7 @@ export class KeywordAnalyzer {
     ], 3);
 
     this.addCategoryInternal('romantic', [
-      'i love you', 'i adore you', 'i cherish you', 'kiss', 'date',
+      'i love you', 'i adore you', 'i cherish you', 'kiss', 'date with you', 'a date',
       'commit', 'be together', 'future together', 'marry me', 'marry you',
       'caress', 'our relationship', 'affection', 'date with me', 'date you',
       'be with you', 'you are perfect', 'you\'re perfect', 'you are my everything',
