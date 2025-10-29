@@ -242,7 +242,7 @@ render(): ReactElement {
               justifyContent: 'center',
               fontSize: '11px',
               fontWeight: 'bold',
-              color: affectionPercent > 50 ? '#faffff' : '#ed5656',
+              color: affectionPercent > 50 ? '#fff' : '#333',
               textShadow: affectionPercent > 50 ? 'none' : '0 1px 2px rgba(0,0,0,0.1)',
             }}>
               {Math.round(affectionPercent)}%
