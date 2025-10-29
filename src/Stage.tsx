@@ -1,205 +1,309 @@
-import {ReactElement} from "react";
-import {StageBase, StageResponse, InitialData, Message} from "@chub-ai/stages-ts";
-import {LoadResponse} from "@chub-ai/stages-ts/dist/types/load";
+import { ReactElement } from "react";
+import { StageBase, StageResponse, InitialData, Message } from "@chub-ai/stages-ts";
+import { LoadResponse } from "@chub-ai/stages-ts/dist/types/load";
+import { keywordAnalyzer } from "./KeywordAnalyzer";
+import { relationshipManager, RelationshipStage } from "./RelationshipManager";
+import { MessageStateType, ChatStateType, SentimentAnalysisEntry, createDefaultMessageState, createDefaultChatState } from "./types";
 
-/***
- The type that this stage persists message-level state in.
- This is primarily for readability, and not enforced.
-
- @description This type is saved in the database after each message,
-  which makes it ideal for storing things like positions and statuses,
-  but not for things like history, which is best managed ephemerally
-  in the internal state of the Stage class itself.
- ***/
-type MessageStateType = any;
-
-/***
- The type of the stage-specific configuration of this stage.
-
- @description This is for things you want people to be able to configure,
-  like background color.
- ***/
 type ConfigType = any;
-
-/***
- The type that this stage persists chat initialization state in.
- If there is any 'constant once initialized' static state unique to a chat,
- like procedurally generated terrain that is only created ONCE and ONLY ONCE per chat,
- it belongs here.
- ***/
 type InitStateType = any;
 
-/***
- The type that this stage persists dynamic chat-level state in.
- This is for any state information unique to a chat,
-    that applies to ALL branches and paths such as clearing fog-of-war.
- It is usually unlikely you will need this, and if it is used for message-level
-    data like player health then it will enter an inconsistent state whenever
-    they change branches or jump nodes. Use MessageStateType for that.
- ***/
-type ChatStateType = any;
-
-/***
- A simple example class that implements the interfaces necessary for a Stage.
- If you want to rename it, be sure to modify App.js as well.
- @link https://github.com/CharHubAI/chub-stages-ts/blob/main/src/types/stage.ts
- ***/
 export class Stage extends StageBase<InitStateType, ChatStateType, MessageStateType, ConfigType> {
+  private currentMessageState: MessageStateType;
+  private currentChatState: ChatStateType;
 
-    /***
-     A very simple example internal state. Can be anything.
-     This is ephemeral in the sense that it isn't persisted to a database,
-     but exists as long as the instance does, i.e., the chat page is open.
-     ***/
-    myInternalState: {[key: string]: any};
+  constructor(data: InitialData<InitStateType, ChatStateType, MessageStateType, ConfigType>) {
+    super(data);
 
-    constructor(data: InitialData<InitStateType, ChatStateType, MessageStateType, ConfigType>) {
-        /***
-         This is the first thing called in the stage,
-         to create an instance of it.
-         The definition of InitialData is at @link https://github.com/CharHubAI/chub-stages-ts/blob/main/src/types/initial.ts
-         Character at @link https://github.com/CharHubAI/chub-stages-ts/blob/main/src/types/character.ts
-         User at @link https://github.com/CharHubAI/chub-stages-ts/blob/main/src/types/user.ts
-         ***/
-        super(data);
-        const {
-            characters,         // @type:  { [key: string]: Character }
-            users,                  // @type:  { [key: string]: User}
-            config,                                 //  @type:  ConfigType
-            messageState,                           //  @type:  MessageStateType
-            environment,                     // @type: Environment (which is a string)
-            initState,                             // @type: null | InitStateType
-            chatState                              // @type: null | ChatStateType
-        } = data;
-        this.myInternalState = messageState != null ? messageState : {'someKey': 'someValue'};
-        this.myInternalState['numUsers'] = Object.keys(users).length;
-        this.myInternalState['numChars'] = Object.keys(characters).length;
+    const {
+      messageState,
+      chatState,
+      characters,
+      users,
+    } = data;
+
+    console.debug(`[Stage] Initializing with ${Object.keys(characters).length} character(s) and ${Object.keys(users).length} user(s)`);
+
+    // Initialize message state: use provided state or create default
+    this.currentMessageState = messageState ?? createDefaultMessageState();
+    this.currentChatState = chatState ?? createDefaultChatState();
+
+    console.debug(`[Stage] Starting affection: ${this.currentMessageState.affection}`);
+  }
+
+  async load(): Promise<Partial<LoadResponse<InitStateType, ChatStateType, MessageStateType>>> {
+    console.debug(`[Stage] Load called`);
+    return {
+      success: true,
+      error: null,
+      initState: null,
+      chatState: null,
+    };
+  }
+
+  async setState(state: MessageStateType): Promise<void> {
+    /**
+     * Called on swipe/jump to a different message in the conversation tree.
+     * Loads the affection history for that specific branch.
+     */
+    console.debug(`[Stage] setState called - switching to message with affection: ${state?.affection ?? 'undefined'}`);
+
+    if (state) {
+      this.currentMessageState = state;
+      console.debug(`[Stage] Loaded message state: affection=${this.currentMessageState.affection}, stage=${this.currentMessageState.relationshipStage}`);
+    }
+  }
+
+  async beforePrompt(userMessage: Message): Promise<Partial<StageResponse<ChatStateType, MessageStateType>>> {
+    /**
+     * Called before the user's message is sent to the LLM.
+     * Analyzes user sentiment, updates affection, determines stage, and provides directions.
+     */
+    const { content, isBot } = userMessage;
+
+    console.debug(`[Stage] beforePrompt called. isBot=${isBot}`);
+
+    // Only analyze user messages, not bot responses
+    if (isBot) {
+      console.debug(`[Stage] Message is from bot, skipping analysis`);
+      return {
+        stageDirections: null,
+        messageState: this.currentMessageState,
+        error: null,
+      };
     }
 
-    async load(): Promise<Partial<LoadResponse<InitStateType, ChatStateType, MessageStateType>>> {
-        /***
-         This is called immediately after the constructor, in case there is some asynchronous code you need to
-         run on instantiation.
-         ***/
-        return {
-            /*** @type boolean @default null
-             @description The 'success' boolean returned should be false IFF (if and only if), some condition is met that means
-              the stage shouldn't be run at all and the iFrame can be closed/removed.
-              For example, if a stage displays expressions and no characters have an expression pack,
-              there is no reason to run the stage, so it would return false here. ***/
-            success: true,
-            /*** @type null | string @description an error message to show
-             briefly at the top of the screen, if any. ***/
-            error: null,
-            initState: null,
-            chatState: null,
-        };
+    // Run sentiment analysis
+    const analysisResult = keywordAnalyzer.analyze(content);
+    const affectionBefore = this.currentMessageState.affection;
+    const affectionAfter = Math.max(0, Math.min(affectionBefore + analysisResult.totalAffectionDelta, relationshipManager.getMaxAffection()));
+
+    console.info(`[Stage] Affection: ${affectionBefore} → ${affectionAfter} (${analysisResult.totalAffectionDelta > 0 ? '+' : ''}${analysisResult.totalAffectionDelta})`);
+
+    // Check for stage transition
+    const oldStage = this.currentMessageState.relationshipStage;
+    const newStage = relationshipManager.getStageForAffection(affectionAfter);
+    const stageTransition = oldStage !== newStage ? { from: oldStage, to: newStage } : undefined;
+
+    if (stageTransition) {
+      console.info(`[Stage] 🎉 Stage transition: ${stageTransition.from} → ${stageTransition.to}`);
     }
 
-    async setState(state: MessageStateType): Promise<void> {
-        /***
-         This can be called at any time, typically after a jump to a different place in the chat tree
-         or a swipe. Note how neither InitState nor ChatState are given here. They are not for
-         state that is affected by swiping.
-         ***/
-        if (state != null) {
-            this.myInternalState = {...this.myInternalState, ...state};
-        }
-    }
+    // Get stage directions
+    const stageDirections = relationshipManager.getStageDirectionsForAffection(affectionAfter);
+    console.debug(`[Stage] ✓ Sending stage directions to LLM: "${stageDirections}"`);
 
-    async beforePrompt(userMessage: Message): Promise<Partial<StageResponse<ChatStateType, MessageStateType>>> {
-        /***
-         This is called after someone presses 'send', but before anything is sent to the LLM.
-         ***/
-        const {
-            content,            /*** @type: string
-             @description Just the last message about to be sent. ***/
-            anonymizedId,       /*** @type: string
-             @description An anonymized ID that is unique to this individual
-              in this chat, but NOT their Chub ID. ***/
-            isBot             /*** @type: boolean
-             @description Whether this is itself from another bot, ex. in a group chat. ***/
-        } = userMessage;
-        return {
-            /*** @type null | string @description A string to add to the
-             end of the final prompt sent to the LLM,
-             but that isn't persisted. ***/
-            stageDirections: null,
-            /*** @type MessageStateType | null @description the new state after the userMessage. ***/
-            messageState: {'someKey': this.myInternalState['someKey']},
-            /*** @type null | string @description If not null, the user's message itself is replaced
-             with this value, both in what's sent to the LLM and in the database. ***/
-            modifiedMessage: null,
-            /*** @type null | string @description A system message to append to the end of this message.
-             This is unique in that it shows up in the chat log and is sent to the LLM in subsequent messages,
-             but it's shown as coming from a system user and not any member of the chat. If you have things like
-             computed stat blocks that you want to show in the log, but don't want the LLM to start trying to
-             mimic/output them, they belong here. ***/
-            systemMessage: null,
-            /*** @type null | string @description an error message to show
-             briefly at the top of the screen, if any. ***/
-            error: null,
-            chatState: null,
-        };
-    }
+    // Create analysis entry
+    const analysisEntry: SentimentAnalysisEntry = {
+      timestamp: Date.now(),
+      messageContent: content.substring(0, 100),
+      keywordMatches: analysisResult.matches,
+      totalAffectionDelta: analysisResult.totalAffectionDelta,
+      affectionBefore,
+      affectionAfter,
+      stageTransition,
+    };
 
-    async afterResponse(botMessage: Message): Promise<Partial<StageResponse<ChatStateType, MessageStateType>>> {
-        /***
-         This is called immediately after a response from the LLM.
-         ***/
-        const {
-            content,            /*** @type: string
-             @description The LLM's response. ***/
-            anonymizedId,       /*** @type: string
-             @description An anonymized ID that is unique to this individual
-              in this chat, but NOT their Chub ID. ***/
-            isBot             /*** @type: boolean
-             @description Whether this is from a bot, conceivably always true. ***/
-        } = botMessage;
-        return {
-            /*** @type null | string @description A string to add to the
-             end of the final prompt sent to the LLM,
-             but that isn't persisted. ***/
-            stageDirections: null,
-            /*** @type MessageStateType | null @description the new state after the botMessage. ***/
-            messageState: {'someKey': this.myInternalState['someKey']},
-            /*** @type null | string @description If not null, the bot's response itself is replaced
-             with this value, both in what's sent to the LLM subsequently and in the database. ***/
-            modifiedMessage: null,
-            /*** @type null | string @description an error message to show
-             briefly at the top of the screen, if any. ***/
-            error: null,
-            systemMessage: null,
-            chatState: null
-        };
-    }
+    // Limit history to prevent memory bloat (keep last 100 entries)
+    const MAX_HISTORY = 100;
+    const newHistory = [...this.currentMessageState.analysisHistory, analysisEntry].slice(-MAX_HISTORY);
 
+    // Update message state
+    this.currentMessageState = {
+      affection: affectionAfter,
+      relationshipStage: newStage,
+      stageDirections,
+      analysisHistory: newHistory,
+    };
 
-    render(): ReactElement {
-        /***
-         There should be no "work" done here. Just returning the React element to display.
-         If you're unfamiliar with React and prefer video, I've heard good things about
-         @link https://scrimba.com/learn/learnreact but haven't personally watched/used it.
+    console.debug(`[Stage] Updated state. History: ${this.currentMessageState.analysisHistory.length}/${MAX_HISTORY}`);
 
-         For creating 3D and game components, react-three-fiber
-           @link https://docs.pmnd.rs/react-three-fiber/getting-started/introduction
-           and the associated ecosystem of libraries are quite good and intuitive.
+    return {
+      stageDirections,
+      messageState: this.currentMessageState,
+      error: null,
+      systemMessage: null,
+    };
+  }
 
-         Cuberun is a good example of a game built with them.
-           @link https://github.com/akarlsten/cuberun (Source)
-           @link https://cuberun.adamkarlsten.com/ (Demo)
-         ***/
-        return <div style={{
-            width: '100vw',
-            height: '100vh',
-            display: 'grid',
-            alignItems: 'stretch'
+  async afterResponse(botMessage: Message): Promise<Partial<StageResponse<ChatStateType, MessageStateType>>> {
+    /**
+     * Called after the bot responds. Preserves current state.
+     */
+    console.debug(`[Stage] afterResponse called`);
+
+    return {
+      stageDirections: null,
+      messageState: this.currentMessageState,
+      error: null,
+      systemMessage: null,
+    };
+  }
+
+  render(): ReactElement {
+    /**
+     * Render the relationship tracker UI showing:
+     * 1. Current relationship stage
+     * 2. Affection progress (current/max)
+     * 3. Points to next stage
+     */
+    const affection = this.currentMessageState.affection;
+    const maxAffection = relationshipManager.getMaxAffection();
+    const stage = this.currentMessageState.relationshipStage;
+    const pointsToNext = relationshipManager.getAffectionToNextStage(affection);
+    const affectionPercent = (affection / maxAffection) * 100;
+
+    return (
+      <div style={{
+        width: '100%',
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        padding: '16px',
+        backgroundColor: '#f5f5f5',
+        fontFamily: 'system-ui, -apple-system, sans-serif',
+        gap: '16px',
+        boxSizing: 'border-box',
+      }}>
+        {/* Header */}
+        <div style={{
+          fontSize: '14px',
+          fontWeight: 'bold',
+          color: '#FAFFFF',
         }}>
-            <div>Hello World! I'm an empty stage! With {this.myInternalState['someKey']}!</div>
-            <div>There is/are/were {this.myInternalState['numChars']} character(s)
-                and {this.myInternalState['numUsers']} human(s) here.
-            </div>
-        </div>;
-    }
+          Relationship Tracker
+        </div>
 
+        {/* Stage Display */}
+        <div style={{
+          padding: '12px',
+          backgroundColor: '#fff',
+          borderRadius: '8px',
+          border: '1px solid #ddd',
+        }}>
+          <div style={{ fontSize: '12px', color: '#FAFFFF', marginBottom: '4px' }}>
+            Stage
+          </div>
+          <div style={{
+            fontSize: '18px',
+            fontWeight: 'bold',
+            color: '#FAFFFF',
+          }}>
+            {stage}
+          </div>
+        </div>
+
+        {/* Affection Progress Bar */}
+        <div style={{
+          padding: '12px',
+          backgroundColor: '#fff',
+          borderRadius: '8px',
+          border: '1px solid #ddd',
+        }}>
+          <div style={{
+            fontSize: '12px',
+            color: '#FAFFFF',
+            marginBottom: '8px',
+            display: 'flex',
+            justifyContent: 'space-between',
+          }}>
+            <span>Affection</span>
+            <span>{affection} / {maxAffection}</span>
+          </div>
+          <div style={{
+            width: '100%',
+            height: '24px',
+            backgroundColor: '#e5e7eb',
+            borderRadius: '4px',
+            overflow: 'hidden',
+            position: 'relative',
+          }}>
+            <div style={{
+              width: `${affectionPercent}%`,
+              height: '100%',
+              backgroundColor: '#ec4899',
+              transition: 'width 0.3s ease',
+            }} />
+            <div style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '11px',
+              fontWeight: 'bold',
+              color: affectionPercent > 50 ? '#FAFFFF' : '#FAFFFF',
+              textShadow: affectionPercent > 50 ? 'none' : '0 1px 2px rgba(0,0,0,0.1)',
+            }}>
+              {Math.round(affectionPercent)}%
+            </div>
+          </div>
+        </div>
+
+        {/* Points to Next Stage */}
+        <div style={{
+          padding: '12px',
+          backgroundColor: '#fff',
+          borderRadius: '8px',
+          border: '1px solid #ddd',
+        }}>
+          <div style={{ fontSize: '12px', color: '#FAFFFF', marginBottom: '4px' }}>
+            To Next Stage
+          </div>
+          <div style={{
+            fontSize: '16px',
+            fontWeight: 'bold',
+            color: pointsToNext === 0 ? '#10b981' : '#f59e0b',
+          }}>
+            {pointsToNext === 0 ? '🎉 Max Stage' : `+${pointsToNext} points`}
+          </div>
+        </div>
+
+        {/* Recent Analysis History */}
+        <div style={{
+          padding: '12px',
+          backgroundColor: '#f9fafb',
+          borderRadius: '8px',
+          border: '1px solid #e5e7eb',
+          fontSize: '10px',
+          color: '#FAFFFF',
+          fontFamily: 'monospace',
+          maxHeight: '140px',
+          overflow: 'auto',
+        }}>
+          <div style={{ fontWeight: 'bold', marginBottom: '8px' }}>Recent Activity</div>
+          {this.currentMessageState.analysisHistory.length === 0 ? (
+            <div style={{ color: '#FAFFFF' }}>No analysis yet</div>
+          ) : (
+            this.currentMessageState.analysisHistory.slice(-3).map((entry, idx) => (
+              <div key={idx} style={{
+                marginBottom: '8px',
+                paddingBottom: '8px',
+                borderBottom: idx < 2 ? '1px solid #e5e7eb' : 'none',
+              }}>
+                <div>{new Date(entry.timestamp).toLocaleTimeString()}</div>
+                <div style={{ color: entry.totalAffectionDelta >= 0 ? '#10b981' : '#ef4444' }}>
+                  {entry.totalAffectionDelta >= 0 ? '+' : ''}{entry.totalAffectionDelta}
+                  {' '}({entry.affectionBefore}→{entry.affectionAfter})
+                </div>
+                {entry.keywordMatches.length > 0 && (
+                  <div style={{ color: '#FAFFFF', marginTop: '2px' }}>
+                    {entry.keywordMatches.map(m => m.category).join(', ')}
+                  </div>
+                )}
+                {entry.stageTransition && (
+                  <div style={{ color: '#2563eb', marginTop: '2px', fontWeight: 'bold' }}>
+                    ⭐ {entry.stageTransition.from}→{entry.stageTransition.to}
+                  </div>
+                )}
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+    );
+  }
 }
