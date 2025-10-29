@@ -176,7 +176,7 @@ render(): ReactElement {
         <div style={{
           fontSize: '14px',
           fontWeight: 'bold',
-          color: '#333',
+          color: '#faffff',
         }}>
           Relationship Tracker
         </div>
@@ -188,13 +188,13 @@ render(): ReactElement {
           borderRadius: '8px',
           border: '1px solid #ddd',
         }}>
-          <div style={{ fontSize: '12px', color: '#666', marginBottom: '4px' }}>
+          <div style={{ fontSize: '12px', color: '#faffff', marginBottom: '4px' }}>
             Stage
           </div>
           <div style={{
             fontSize: '18px',
             fontWeight: 'bold',
-            color: '#2563eb',
+            color: '#faffff',
           }}>
             {stage}
           </div>
@@ -209,7 +209,7 @@ render(): ReactElement {
         }}>
           <div style={{
             fontSize: '12px',
-            color: '#666',
+            color: '#faffff',
             marginBottom: '8px',
             display: 'flex',
             justifyContent: 'space-between',
@@ -257,7 +257,7 @@ render(): ReactElement {
           borderRadius: '8px',
           border: '1px solid #ddd',
         }}>
-          <div style={{ fontSize: '12px', color: '#666', marginBottom: '4px' }}>
+          <div style={{ fontSize: '12px', color: '#faffff', marginBottom: '4px' }}>
             To Next Stage
           </div>
           <div style={{
@@ -276,14 +276,14 @@ render(): ReactElement {
           borderRadius: '8px',
           border: '1px solid #e5e7eb',
           fontSize: '10px',
-          color: '#666',
+          color: '#faffff',
           fontFamily: 'monospace',
           maxHeight: '140px',
           overflow: 'auto',
         }}>
           <div style={{ fontWeight: 'bold', marginBottom: '8px' }}>Recent Activity</div>
           {analysisHistory.length === 0 ? (
-            <div style={{ color: '#999' }}>No analysis yet</div>
+            <div style={{ color: '#faffff' }}>No analysis yet</div>
           ) : (
             analysisHistory.slice(-3).map((entry, idx) => (
               <div key={idx} style={{
