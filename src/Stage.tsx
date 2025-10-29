@@ -140,18 +140,25 @@ export class Stage extends StageBase<InitStateType, ChatStateType, MessageStateT
     };
   }
 
-  render(): ReactElement {
+render(): ReactElement {
     /**
      * Render the relationship tracker UI showing:
      * 1. Current relationship stage
      * 2. Affection progress (current/max)
      * 3. Points to next stage
      */
-    const affection = this.currentMessageState.affection;
+    // Defensive check - ensure state exists
+    if (!this.currentMessageState) {
+      console.warn('[Stage] render() called but currentMessageState is undefined, using default');
+      this.currentMessageState = createDefaultMessageState();
+    }
+
+    const affection = this.currentMessageState.affection ?? 0;
     const maxAffection = relationshipManager.getMaxAffection();
-    const stage = this.currentMessageState.relationshipStage;
+    const stage = this.currentMessageState.relationshipStage ?? RelationshipStage.STRANGERS;
     const pointsToNext = relationshipManager.getAffectionToNextStage(affection);
     const affectionPercent = (affection / maxAffection) * 100;
+    const analysisHistory = this.currentMessageState.analysisHistory ?? [];
 
     return (
       <div style={{
@@ -169,7 +176,7 @@ export class Stage extends StageBase<InitStateType, ChatStateType, MessageStateT
         <div style={{
           fontSize: '14px',
           fontWeight: 'bold',
-          color: '#FAFFFF',
+          color: '#333',
         }}>
           Relationship Tracker
         </div>
@@ -181,13 +188,13 @@ export class Stage extends StageBase<InitStateType, ChatStateType, MessageStateT
           borderRadius: '8px',
           border: '1px solid #ddd',
         }}>
-          <div style={{ fontSize: '12px', color: '#FAFFFF', marginBottom: '4px' }}>
+          <div style={{ fontSize: '12px', color: '#666', marginBottom: '4px' }}>
             Stage
           </div>
           <div style={{
             fontSize: '18px',
             fontWeight: 'bold',
-            color: '#FAFFFF',
+            color: '#2563eb',
           }}>
             {stage}
           </div>
@@ -202,7 +209,7 @@ export class Stage extends StageBase<InitStateType, ChatStateType, MessageStateT
         }}>
           <div style={{
             fontSize: '12px',
-            color: '#FAFFFF',
+            color: '#666',
             marginBottom: '8px',
             display: 'flex',
             justifyContent: 'space-between',
@@ -235,7 +242,7 @@ export class Stage extends StageBase<InitStateType, ChatStateType, MessageStateT
               justifyContent: 'center',
               fontSize: '11px',
               fontWeight: 'bold',
-              color: affectionPercent > 50 ? '#FAFFFF' : '#FAFFFF',
+              color: affectionPercent > 50 ? '#fff' : '#333',
               textShadow: affectionPercent > 50 ? 'none' : '0 1px 2px rgba(0,0,0,0.1)',
             }}>
               {Math.round(affectionPercent)}%
@@ -250,7 +257,7 @@ export class Stage extends StageBase<InitStateType, ChatStateType, MessageStateT
           borderRadius: '8px',
           border: '1px solid #ddd',
         }}>
-          <div style={{ fontSize: '12px', color: '#FAFFFF', marginBottom: '4px' }}>
+          <div style={{ fontSize: '12px', color: '#666', marginBottom: '4px' }}>
             To Next Stage
           </div>
           <div style={{
@@ -269,16 +276,16 @@ export class Stage extends StageBase<InitStateType, ChatStateType, MessageStateT
           borderRadius: '8px',
           border: '1px solid #e5e7eb',
           fontSize: '10px',
-          color: '#FAFFFF',
+          color: '#666',
           fontFamily: 'monospace',
           maxHeight: '140px',
           overflow: 'auto',
         }}>
           <div style={{ fontWeight: 'bold', marginBottom: '8px' }}>Recent Activity</div>
-          {this.currentMessageState.analysisHistory.length === 0 ? (
-            <div style={{ color: '#FAFFFF' }}>No analysis yet</div>
+          {analysisHistory.length === 0 ? (
+            <div style={{ color: '#999' }}>No analysis yet</div>
           ) : (
-            this.currentMessageState.analysisHistory.slice(-3).map((entry, idx) => (
+            analysisHistory.slice(-3).map((entry, idx) => (
               <div key={idx} style={{
                 marginBottom: '8px',
                 paddingBottom: '8px',
@@ -290,7 +297,7 @@ export class Stage extends StageBase<InitStateType, ChatStateType, MessageStateT
                   {' '}({entry.affectionBefore}→{entry.affectionAfter})
                 </div>
                 {entry.keywordMatches.length > 0 && (
-                  <div style={{ color: '#FAFFFF', marginTop: '2px' }}>
+                  <div style={{ color: '#999', marginTop: '2px' }}>
                     {entry.keywordMatches.map(m => m.category).join(', ')}
                   </div>
                 )}
