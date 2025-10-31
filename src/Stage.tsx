@@ -33,11 +33,13 @@ export class Stage extends StageBase<InitStateType, ChatStateType, MessageStateT
 
   async load(): Promise<Partial<LoadResponse<InitStateType, ChatStateType, MessageStateType>>> {
     console.debug(`[Stage] Load called`);
+    console.debug(`[Stage] Returning messageState for persistence: affection=${this.currentMessageState.affection}, stage=${this.currentMessageState.relationshipStage}`);
     return {
       success: true,
       error: null,
       initState: null,
       chatState: null,
+      messageState: this.currentMessageState,
     };
   }
 
