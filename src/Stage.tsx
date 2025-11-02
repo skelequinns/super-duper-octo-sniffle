@@ -280,7 +280,7 @@ export class Stage extends StageBase<InitStateType, ChatStateType, MessageStateT
           {this.currentMessageState.analysisHistory.length === 0 ? (
             <div style={{ color: '#FAFFFF' }}>No analysis yet</div>
           ) : (
-            this.currentMessageState.analysisHistory.slice(-3).map((entry, idx) => (
+            this.currentMessageState.analysisHistory.slice(-3).reverse().map((entry, idx) => (
               <div key={idx} style={{
                 marginBottom: '8px',
                 paddingBottom: '8px',
