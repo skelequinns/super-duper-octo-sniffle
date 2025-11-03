@@ -40,7 +40,7 @@ export class KeywordAnalyzer {
       'likable', 'lovely', 'loyal', 'motivated', 'observant', 'optimistic', 'optimism',
       'outstanding', 'perceptive', 'polite', 'prudent', 'proactive', 'respectful', 'respect',
       'sensible', 'sincere', 'superb', 'terrific', 'thoughtful', 'tremendous', 'trustworthy',
-      'i trust you', 'i believe in you'
+      'i trust you', 'i believe in you', 'thank you', 'thank you so much'
     ], 1);
 
     this.addCategoryInternal('romantic', [
