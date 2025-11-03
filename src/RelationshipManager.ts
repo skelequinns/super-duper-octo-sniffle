@@ -28,17 +28,17 @@ export class RelationshipManager {
     },
     {
       stage: RelationshipStage.ACQUAINTANCES,
-      minAffection: 45,
+      minAffection: 20,
       stageDirections: "You're warming up slightly. Show cautious interest. Be friendly but maintain emotional distance. Sexual and Romantic content is not appropriate at this stage."
     },
     {
       stage: RelationshipStage.FRIENDS,
-      minAffection: 89,
+      minAffection: 49,
       stageDirections: "You're comfortable talking. Share some opinions and interests. Be more relaxed and open. Sexual and Romantic content is not appropriate at this stage."
     },
     {
       stage: RelationshipStage.GOOD_FRIENDS,
-      minAffection: 115,
+      minAffection: 100,
       stageDirections: "You trust them. Share more personal thoughts and feelings. Be supportive and engaged. Sexual and Romantic content is not appropriate at this stage."
     },
     {
