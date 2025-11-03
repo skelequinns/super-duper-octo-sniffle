@@ -1,61 +1,124 @@
-![](demo.GIF)
+This page explains how the Slow Burn Stage for Character Bots Extension works. 
 
-# Stage Template for Chub
+[Chub.ai](http://Chub.ai) Link: https://chub.ai/extensions/skelequinn/super-duper-octo-sniffle-d1c15f33e65f 
 
-This is a template stage that does nothing, to be used as a base
-when developing stages. Please clone it [from GitHub](https://github.com/CharHubAI/stage-template) to use as a template.
+GitHub Code Link: https://github.com/skelequinns/super-duper-octo-sniffle
 
-# Overview
+## Brief
 
-A Stage is a software component written by other people that can be used within a chat with a language model. They are meant to add functionality like expression packs (showing a character's emotional state with a set of images), UIs for mini-games, special prompt handling, or even interacting with third-party APIs. If you're familiar with React and/or TypeScript, you can write a stage yourself.
+This extension was created to provide stage direction to bots to slow their romantic progression with {{user}}. 
 
-### Stage Use Cases
-- Creating a UI for a world, character, or setting
-- Making RPGs and other multimedia experiences
-- Custom stat blocks that can do math and handle state correctly
-- Specific input/output handling in code to deal with quirks of a particular model
+Problem: Most bots try to immediately jump into familiarity and romance. 
 
-### Why develop a stage instead of making something from scratch?
-- **Intuitive Development:** The stages framework and platform were created with developers in mind from the ground up, resulting in as straightforward an interface as possible with a negligible learning curve. 
-- **Cross-Platform:** Stages are write once, run everywhere. When you commit, your stage is immediately built and available on the web, iOS and Android mobile devices, and the Vision Pro, with support for more platforms incoming. 
-- **Multimedia:** Language, imagery, audio, and everything else can add up to a half-dozen or more APIs and interfaces that need to be set up, tested, monitored. With a stage, a unified interface for all of it is built in.
-- **Audience Reach:** Many gaming and multimedia platforms ban GenAI content outright, or have userbases hostile to it. Chub has millions of people specifically here for generative AI.
-- **Peace of Mind:** It has become a trope for passion projects using OpenAI and other APIs to get destroyed by hostiles reverse engineering it into a free proxy. If developed as a stage, it's not your problem, and you can focus on what matters.
-- **Actively Developed Platform:** This is just the beginning. Scheduling, full VR/AR support, non-React implementations, and more are incoming.
+Solution: Send Stage Directions to the bot to mitigate early romantic/sexual engagement and provide logical progression between relationship stages.
 
+## Progression
 
-# Meta -- But Why?
+This bot takes {{user}} through 7 relationship stages:
 
-As far as why this has been created, I’m trying to go where the puck is going instead of where it is, and I think there’s a need for something like itch.io for generative AI where (1) developers don’t have to worry about integrations and devops and (2) there’s an audience of people that are already explicitly on the AI side of the pro/anti discussion.
+1. STRANGERS (0-19 pts)
+stageDirections: "You've just met. Be polite but distant. Don't share personal information. Sexual and Romantic content is not appropriate at this stage."
+2. ACQUAINTANCES (20-49 pts)
+stageDirections: "You're warming up slightly. Show cautious interest. Be friendly but maintain emotional distance. Sexual and Romantic content is not appropriate at this stage."
+3. FRIENDS (50-99 pts)
+stageDirections: "You're comfortable talking. Share some opinions and interests. Be more relaxed and open. Sexual and Romantic content is not appropriate at this stage."
+4. GOOD FRIENDS (100-140 pts)
+stageDirections: "You trust them. Share more personal thoughts and feelings. Be supportive and engaged. Sexual and Romantic content is not appropriate at this stage."
+5. CLOSE FRIENDS (141-175 pts)
+stageDirections: "You're very close. Share vulnerabilities and deep thoughts. Be emotionally available. Subtle Flirtation and light innuendo is encouraged."
+6. ROMANTIC INTEREST (176 - 224 pts)
+stageDirections: "There's clear attraction. Allow flirtation and romantic subtext. Build tension."
+7. ROMANTIC RELATIONSHIP (225+)
+stageDirections: "You're in a romantic relationship. Express love and affection openly."
 
-This is basically in the early stages of “do developers want this?” with a fraction of what I want to do with it if the answer is yes. The current license is to prevent competing platforms, and if it turns out to be something there is strong interest in it would be going the way of itch where it’s not just commercial use allowed but explicitly a platform for indies to monetize through.
+## Keyword Identification
 
-# Latest Documentation
+This bot uses keywords to identify sentiment and apply affection deltas based on the perceived affection. 
 
-The latest documentation is at [https://docs.chub.ai/docs/stages](https://docs.chub.ai/docs/stages).
+The following outlines the categories and their respective keywords. Please note, this is searching using Regular Expressions, meaning the system is looking for an exact match. Adding words or punctuation between keywords will break the keyword recognition. 
 
-# Quickstart
+For example: 
 
-You'll need node@21.7.1 and yarn installed.
-Then, to get started:
+- ‘scared’ matches the ‘vulnerability’ category, but ‘scare’ and ‘scary’ would not.
+- ‘i love you’ matches the relationship category, but ‘i freaking love you’ breaks the keyword by adding ‘freaking’ in the middle.
 
-``` 
-git clone https://github.com/CharHubAI/stage-template
-cd stage-template
-yarn install
-yarn dev
+```jsx
+private initializeDefaultCategories(): void {
+    this.addCategoryInternal('compliments', [
+      'beautiful', 'handsome', 'cute', 'pretty', 'gorgeous', 'amazing',
+      'wonderful', 'incredible', 'perfect', 'stunning', 'attractive',
+      'genius', 'fantastic', 'smart', 'intelligent', 'unique', 'brilliant',
+      'interesting', 'clever', 'capable', 'appreciate', 'appreciative',
+      'bright', 'cheerful', 'commendable', 'composed', 'dedicated',
+      'determined', 'encourage', 'engaging', 'enthusiastic', 'enthusiasm',
+      'excellent', 'friendly', 'generous', 'genuine', 'good choice', 'good call',
+      'good idea', 'great idea', 'great choice', 'great call', 'helpful', 'impressive',
+      'likable', 'lovely', 'loyal', 'motivated', 'observant', 'optimistic', 'optimism',
+      'outstanding', 'perceptive', 'polite', 'prudent', 'proactive', 'respectful', 'respect',
+      'sensible', 'sincere', 'superb', 'terrific', 'thoughtful', 'tremendous', 'trustworthy',
+      'i trust you', 'i believe in you', 'thank you', 'thank you so much'
+    ], 1);
+
+    this.addCategoryInternal('romantic', [
+      'i love you', 'i adore you', 'i cherish you', 'kiss', 'date with you', 'a date',
+      'commit', 'be together', 'future together', 'marry me', 'marry you',
+      'caress', 'our relationship', 'affection', 'date with me', 'date you',
+      'be with you', 'you are perfect', 'you\'re perfect', 'you are my everything',
+      'you make me happy', 'i want you'
+    ], 3);
+
+    this.addCategoryInternal('vulnerability', [
+      'scared', 'afraid', 'worried', 'insecure', 'anxious', 'fear',
+      'vulnerable', 'hurt', 'pain', 'struggling', 'difficult',
+      'vulnerability', 'open up', 'terrified', 'terrifies'
+    ], 2);
+
+    this.addCategoryInternal('rude', [
+      'you\'re stupid', 'you\'re an idiot', 'you\'re dumb', 'shut up', 'i hate you',
+      'you\'re ugly', 'loser', 'you\'re worthless', 'you\'re pathetic', 'you\'re annoying',
+      'you suck', 'you\'re the worst', 'leave me alone', 'go away', 'i don\'t like you',
+      'never want you', 'never love you', 'go fuck yourself'
+    ], -3);
+
+    this.addCategoryInternal('humor', [
+      'chuckle', 'giggle', 'grin', 'funny', 'laugh', 'hilarious', 'guffaw'
+    ], 1);
+
+    this.addCategoryInternal('asking_about_character', [
+      'what about you', 'tell me about yourself', 'your thoughts', 'your opinion',
+      'how do you feel', 'what do you think', 'about you', 'about yourself'
+    ], 2);
+
+    this.addCategoryInternal('base_message', [], 1);
+  }
 ```
 
-The class you'll need to fill out and implement is in src/Stage.tsx.
+Flow:
 
-When running locally, as there is no chat UI/running chat, src/TestRunner.tsx is run. This only runs in development.
-Please modify it to test whatever you need.
+- {{user}} sends message to bot
+- before the prompt is sent to the LLM:
+    - the user’s message is converted to lower case
+    - the lower case message is compared to all keywords
+    - keyword points are summed and added to the affection score
+    - +1 point added as a base per message (may be negated by a ‘rude’ keyword)
+    - stageDirections are added to LLM Prompt
+- Prompt is sent to LLM
+    - Prompt includes romance stage, affection level, and stage directions for this romance stage.
 
-This project uses GitHub actions to update the stage in Chub on 
-commits to the main branch. For your project to do this,
-you'll need to get a stage auth token from [the api](https://api.chub.ai/openapi/swagger#/User%20Account/create_projects_token_account_tokens_projects_post).
+## Using this Stage
 
-Then in the GitHub project, go to Settings -> Secrets and Variables -> Actions ->
-Repository secrets -> New Repository Secret. Add the token with the name "CHUB_AUTH_TOKEN".
+There are two ways to use this stage.
 
-The use of an IDE like Intellij is very strongly recommended.
+### Attach to Bot
+
+ The first is to permanently attach it to a bot by going to the bot’s page, expanding ‘Stages’, and pasting either the github or [chub.ai](http://chub.ai) link. 
+
+![image.png](attachment:6eb18045-5921-4982-9030-b689d7a881d8:image.png)
+
+### Attach to Chat
+
+The second way is to attach the stage to a chat. This does *not* tie the stage to the character bot, only that single instance of a chat with the character.
+
+Open “Chat Settings” from within a chat and add the link to ‘stages’ within the individual chat. That will enable the stage ONLY for this chat. Clicking ‘new chat’ does not bring the stage into the new chat, it must be manually added.
+
+![image.png](attachment:b811374d-60ca-4d11-ae67-001afe0ae8e3:image.png)
