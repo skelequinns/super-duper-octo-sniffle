@@ -41,7 +41,7 @@ export class KeywordAnalyzer {
       'outstanding', 'perceptive', 'polite', 'prudent', 'proactive', 'respectful', 'respect',
       'sensible', 'sincere', 'superb', 'terrific', 'thoughtful', 'tremendous', 'trustworthy',
       'i trust you', 'i believe in you'
-    ], 3);
+    ], 1);
 
     this.addCategoryInternal('romantic', [
       'i love you', 'i adore you', 'i cherish you', 'kiss', 'date with you', 'a date',
@@ -49,31 +49,31 @@ export class KeywordAnalyzer {
       'caress', 'our relationship', 'affection', 'date with me', 'date you',
       'be with you', 'you are perfect', 'you\'re perfect', 'you are my everything',
       'you make me happy', 'i want you'
-    ], 10);
+    ], 3);
 
     this.addCategoryInternal('vulnerability', [
       'scared', 'afraid', 'worried', 'insecure', 'anxious', 'fear',
       'vulnerable', 'hurt', 'pain', 'struggling', 'difficult',
       'vulnerability', 'open up', 'terrified', 'terrifies'
-    ], 5);
+    ], 2);
 
     this.addCategoryInternal('rude', [
       'you\'re stupid', 'you\'re an idiot', 'you\'re dumb', 'shut up', 'i hate you',
       'you\'re ugly', 'loser', 'you\'re worthless', 'you\'re pathetic', 'you\'re annoying',
       'you suck', 'you\'re the worst', 'leave me alone', 'go away', 'i don\'t like you',
       'never want you', 'never love you', 'go fuck yourself'
-    ], -5);
+    ], -3);
 
     this.addCategoryInternal('humor', [
       'chuckle', 'giggle', 'grin', 'funny', 'laugh', 'hilarious', 'guffaw'
-    ], 3);
+    ], 1);
 
     this.addCategoryInternal('asking_about_character', [
       'what about you', 'tell me about yourself', 'your thoughts', 'your opinion',
       'how do you feel', 'what do you think', 'about you', 'about yourself'
-    ], 3);
+    ], 2);
 
-    this.addCategoryInternal('base_message', [], 2);
+    this.addCategoryInternal('base_message', [], 1);
   }
 
   /**
