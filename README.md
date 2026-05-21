@@ -122,3 +122,29 @@ The second way is to attach the stage to a chat. This does *not* tie the stage t
 Open “Chat Settings” from within a chat and add the link to ‘stages’ within the individual chat. That will enable the stage ONLY for this chat. Clicking ‘new chat’ does not bring the stage into the new chat, it must be manually added.
 
 ![image.png](attachment:b811374d-60ca-4d11-ae67-001afe0ae8e3:image.png)
+## Local Development and Chub Build
+
+To run this project locally for testing, install dependencies and start Vite:
+
+```bash
+npm install
+npm run dev
+```
+
+Then open the local dev server shown in the terminal (usually `http://localhost:5173`). In development mode the app uses `TestStageRunner` so you can validate stage behavior in the browser.
+
+To build the stage for Chub, use:
+
+```bash
+npm run build
+```
+
+This now runs Vite in `lib` mode and produces the Chub-ready library bundle in `dist/`.
+
+If you want to preview the production build locally, run:
+
+```bash
+npm run preview
+```
+
+If you are manually uploading a stage package to Chub, zip the contents of `dist/` and upload to your Chub extension.
